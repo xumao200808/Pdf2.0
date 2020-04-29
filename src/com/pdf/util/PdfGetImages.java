@@ -3,10 +3,10 @@ package com.pdf.util;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
-import java.util.function.Consumer;
-
 import javax.imageio.ImageIO;
 
 import org.apache.pdfbox.cos.COSName;
@@ -19,25 +19,71 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 
 public class PdfGetImages {
 	
-	public static void main(String [] args) {
-		try {
-			covertImage(loadPages(loadPdf("D:\\work\\电子发票pdf识别\\test5-1/test5.pdf")));
-		} catch (IOException e) {
-		}
-	}
+	private String pdfPath;
+	private String imageFolderPath;
+	private List<String> imagesPaths;
 	
+	public PdfGetImages(String pdfPath) {
+		this.pdfPath = pdfPath;
+		this.imagesPaths = new ArrayList<String>();
+	}
 
-	private static PDDocument loadPdf(String pdfPath) throws IOException {
-		return PDDocument.load(new File(pdfPath));
+	public void saveImagesOfPdf() throws IOException {
+		covertImage(loadPages(loadPdf(this.pdfPath)));
 	}
 	
-	public static  Iterator<PDPage> loadPages(PDDocument document){
+	public List<String> getImagesPaths(){
+		return this.imagesPaths;		
+	}
+	
+	
+	private PDDocument loadPdf(String pdfPath) throws IOException {
+		File file = new File(pdfPath);
+		this.imageFolderPath = file.getParent();
+		return PDDocument.load(file);
+	}
+	
+	public Iterator<PDPage> loadPages(PDDocument document){
 		PDPageTree pageTree = document.getPages();
 		return pageTree.iterator();
 	}
 	
-	public static void covertImage(Iterator<PDPage> iterator) {
-		iterator.forEachRemaining(new Consumer<PDPage>() {			
+	public void covertImage(Iterator<PDPage> iterator) {
+		while(iterator.hasNext()) {
+			PDPage pdPage = iterator.next();
+			PDResources pdResources = pdPage.getResources();
+			Iterable<COSName> cosNames = pdResources.getXObjectNames();
+			if(cosNames != null) {
+				Iterator<COSName> cosNamesIter = cosNames.iterator();
+				while (cosNamesIter.hasNext()) {
+					COSName t = cosNamesIter.next();
+					System.out.println("###########################################");							
+					System.out.println();							
+					//is ImageXObject							
+					if(pdResources.isImageXObject(t)){								
+						System.out.println("COSName "+t.getName()+" isImageXObject");								
+						try {
+							PDXObject pdXObject = pdResources.getXObject(t);								
+							PDImageXObject pdImageXObject=(PDImageXObject) pdXObject;								
+							String suffix=pdImageXObject.getSuffix();								
+							System.out.println("Height:"+pdImageXObject.getHeight()+" Width:"+pdImageXObject.getWidth()+" Suffix:"+suffix);								
+							BufferedImage image=pdImageXObject.getImage();
+							File file = mkdirsFile(this.imageFolderPath, UUID.randomUUID().toString()+"."+suffix);
+							this.imagesPaths.add(file.getAbsolutePath());
+							ImageIO.write(image, suffix, file);
+						} catch (IOException e) {
+							System.out.println("Get Image Of Pdf Error:" + e.getMessage());
+						}							
+					}else{								
+						System.out.println("COSName "+t.getName()+" isOtherXObject");							
+					}							
+					System.out.println();							
+					System.out.println("###########################################");	
+				}
+			}
+		}
+		
+		/*iterator.forEachRemaining(new Consumer<PDPage>() {			
 			public void accept(PDPage pdPage) {				
 				//load resoure				
 				PDResources pdResources=pdPage.getResources();				
@@ -57,7 +103,7 @@ public class PdfGetImages {
 									String suffix=pdImageXObject.getSuffix();								
 									System.out.println("Height:"+pdImageXObject.getHeight()+" Width:"+pdImageXObject.getWidth()+" Suffix:"+suffix);								
 									BufferedImage image=pdImageXObject.getImage();								
-									ImageIO.write(image, suffix, mkdirsFile("D:\\work\\电子发票pdf识别\\test5-1", UUID.randomUUID().toString()+"."+suffix));							
+									ImageIO.write(image, suffix, mkdirsFile(, UUID.randomUUID().toString()+"."+suffix));							
 								}else{								
 									System.out.println("COSName "+t.getName()+" isOtherXObject");							
 								}							
@@ -69,10 +115,10 @@ public class PdfGetImages {
 					}				
 					});			
 				}		
-			});
+			});*/
 		}
 			
-		public static File mkdirsFile(String dir, String realName) throws IOException {	
+		public File mkdirsFile(String dir, String realName) throws IOException {	
 			File file = new File(dir, realName);		
 			if (!file.exists()) {			
 				if (!file.getParentFile().exists()) {				
@@ -82,5 +128,10 @@ public class PdfGetImages {
 				}		
 			return file;	
 		}
-
+		public String getPdfPath() {
+			return pdfPath;
+		}
+		public void setPdfPath(String pdfPath) {
+			this.pdfPath = pdfPath;
+		}
 }
