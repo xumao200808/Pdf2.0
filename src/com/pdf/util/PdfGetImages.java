@@ -55,7 +55,7 @@ public class PdfGetImages {
 									PDXObject pdXObject = pdResources.getXObject(t);								
 									PDImageXObject pdImageXObject=(PDImageXObject) pdXObject;								
 									String suffix=pdImageXObject.getSuffix();								
-									System.out.println("Height:"+pdImageXObject.getHeight()+"Width:"+pdImageXObject.getWidth()+"Suffix:"+suffix);								
+									System.out.println("Height:"+pdImageXObject.getHeight()+" Width:"+pdImageXObject.getWidth()+" Suffix:"+suffix);								
 									BufferedImage image=pdImageXObject.getImage();								
 									ImageIO.write(image, suffix, mkdirsFile("D:\\work\\电子发票pdf识别\\test5-1", UUID.randomUUID().toString()+"."+suffix));							
 								}else{								
